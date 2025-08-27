@@ -1,15 +1,42 @@
 from ultralytics import YOLO
 import cv2
+import os
 
-# Load a pretrained YOLO model (nano version, fast and small)
+# Load YOLO model (nano version)
 model = YOLO("yolov8n.pt")
 
-# Load your photo
-image_path = "test.jpg"  # replace with your photo path
-results = model(image_path)
+# Path to image or folder
+input_path = "images"  # can be a single "test.jpg" or a folder
+output_dir = "outputs"
+os.makedirs(output_dir, exist_ok=True)
 
-# Display detections
-annotated = results[0].plot()
-cv2.imshow("Detected Items", annotated)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+def process_image(image_path):
+    results = model(image_path)
+
+    # Get annotated frame
+    annotated = results[0].plot()
+
+    # Save output
+    filename = os.path.basename(image_path)
+    out_path = os.path.join(output_dir, f"annotated_{filename}")
+    cv2.imwrite(out_path, annotated)
+
+    # Print detections
+    for box in results[0].boxes:
+        cls = int(box.cls[0])
+        conf = float(box.conf[0])
+        name = results[0].names[cls]
+        print(f"Detected {name} with confidence {conf:.2f}")
+
+    # Show annotated image
+    cv2.imshow("Detections", annotated)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+# Handle single file or folder
+if os.path.isdir(input_path):
+    for img in os.listdir(input_path):
+        if img.lower().endswith((".jpg", ".jpeg", ".png")):
+            process_image(os.path.join(input_path, img))
+else:
+    process_image(input_path)
